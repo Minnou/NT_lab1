@@ -2,37 +2,114 @@ import requests
 import time
 import re
 
-days = 100
-i = 1
-https = "https:"
-currentUrl = "//www.cbr-xml-daily.ru/daily_json.js"
-resultFile = open("./dataset.csv", "w+", encoding="utf-8")
-retries = 0
-maxRetries = 3
-timeDelay = 0.7
+valutes = [
+    "AUD","AZN","GBP","AMD",
+    "BYN","BGN","BRL","HUF",
+    "VND","HKD","GEL","DKK",
+    "AED","USD","EUR","EGP",
+    "INR","IDR","KZT","CAD",
+    "QAR","KGS","CNY","MDL",
+    "NZD","NOK","PLN","RON",
+    "XDR","SGD","TJS","THB",
+    "TRY","TMT","UZS","UAH",
+    "CZK","SEK","CHF","RSD",
+    "ZAR","KRW","JPY",
+]
 
-while (i <= days):
-    try:
-        rawData = requests.get(https + currentUrl, timeout=30)
-        rawData.raise_for_status()
-    except:
-        print("Something went wrong. ",end="")
-        if retries < maxRetries:
-            print("Retrying. retry #" + str(retries))
-            retries += 1
-            time.sleep(5)
-            continue
-        resultFile.close()
-        raise
-    
+def create_dataset(valute, days, max_retries=3, time_delay=0.7):
+    i = 1
     retries = 0
-    resultJSON = rawData.json()
-    currentUrl = resultJSON["PreviousURL"]
-    value = resultJSON["Valute"]["JPY"]["Value"]
-    date = re.match(pattern="(.*)T.*", string=resultJSON["Date"]).group(1)
-    resultFile.write(str(date) + ";" + str(value) + "\n")
-    print("day #" + str(i) + ". days remaining: " + str(days - i) + ". date: "+ str(date) + ". value: " + str(value) + "\n" )
-    time.sleep(timeDelay)
-    i += 1
+    https = "https:"
+    current_url = "//www.cbr-xml-daily.ru/daily_json.js"
+    result_file = open("./dataset.csv", "w+", encoding="utf-8")
+    while (i <= days):
+        try:
+            raw_data = requests.get(https + current_url, timeout=30)
+            raw_data.raise_for_status()
+        except:
+            if __name__ == '__main__':
+                print("Что-то пошло не так. ",end="")
+            if retries < max_retries:
+                if __name__ == '__main__':
+                    print("Повторяем запрос. Попытка #" + str(retries))
+                retries += 1
+                time.sleep(5)
+                continue
+            else:
+                result_file.close()
+                return False
+        
+        retries = 0
+        result_JSON = raw_data.json()
+        current_url = result_JSON["PreviousURL"]
+        value = result_JSON["Valute"][str(valute)]["Value"]
+        date = re.match(pattern="(.*)T.*", string=result_JSON["Date"]).group(1)
+        result_file.write(str(date) + ";" + str(value) + "\n")
+        if __name__ == '__main__':
+            print("День #" + str(i) + ". дней осталось: " + str(days - i) + ". дата: "+ str(date) + ". стоимость: " + str(value) + "\n" )
+        time.sleep(time_delay)
+        i += 1
+    result_file.close()
+    return True
 
-resultFile.close()
+def main():
+    print("Введите код валюты (USD): ", end="")
+    valute = input()
+    if valute.strip() == "":
+        valute = "USD"
+    if not (valute in valutes):
+        print("Введённая валюта не поддерживается")
+        return
+    
+    print("Введите количество дней (1): ", end="")
+    days = input()
+    if days.strip() == "":
+        days = 1
+    else:
+        try:
+            int(days.strip())
+        except ValueError:
+            print("Введено не целое число")
+            return
+        days = int(days.strip())
+        if(days < 1):
+            print("Количество дней должно быть больше нуля")
+            return
+    
+    print("Введите количество повторных попыток в случае ошибки (3): ", end="")
+    max_retries = input()
+    if max_retries.strip() == "":
+        max_retries = 3
+    else:
+        try:
+            int(max_retries.strip())
+        except ValueError:
+            print("Введено не целое число")
+            return
+        max_retries = int(max_retries.strip())
+        if(max_retries < 0):
+            print("Количество попыток должно должно быть положительным")
+            return
+    
+    print("Введите интервал между запросами в секундах (0.7): ", end="")
+    time_delay = input()
+    if time_delay.strip() == "":
+        time_delay = 0.7
+    else:
+        try:
+            float(time_delay.strip())
+        except ValueError:
+            print("Введено не число")
+            return
+        time_delay = int(time_delay.strip())
+        if(time_delay < 0):
+            print("Интервал между запросами должен быть положительным")
+            return
+        
+    if create_dataset(valute=valute, days=days, max_retries=max_retries, time_delay=time_delay):
+        print("Датасет успешно создан")
+    else:
+        print("При создании датасета возникла ошибка")
+    
+if __name__ == '__main__':
+    main()
