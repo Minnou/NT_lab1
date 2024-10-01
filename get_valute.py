@@ -15,46 +15,52 @@ valutes = [
     "CZK","SEK","CHF","RSD",
     "ZAR","KRW","JPY",
 ]
-
+      
 def create_dataset(valute, days, max_retries=3, time_delay=0.7):
-    i = 1
+    current_day = 1
     retries = 0
     https = "https:"
     current_url = "//www.cbr-xml-daily.ru/daily_json.js"
-    result_file = open("./dataset.csv", "w+", encoding="utf-8")
-    while (i <= days):
-        try:
-            raw_data = requests.get(https + current_url, timeout=30)
-            raw_data.raise_for_status()
-        except:
-            if __name__ == '__main__':
-                print("Что-то пошло не так. ",end="")
-            if retries < max_retries:
+    file_path = "./"+valute+"_dataset_"+str(int(time.time()))+".csv"
+    try:
+        result_file = open(file_path, "w+", encoding="utf-8")
+        while (current_day <= days):
+            try:
+                raw_data = requests.get(https + current_url, timeout=30)
+                raw_data.raise_for_status()
+            except Exception as e:
                 if __name__ == '__main__':
-                    print("Повторяем запрос. Попытка #" + str(retries))
-                retries += 1
-                time.sleep(5)
-                continue
-            else:
-                result_file.close()
-                return False
-        
-        retries = 0
-        result_JSON = raw_data.json()
-        current_url = result_JSON["PreviousURL"]
-        value = result_JSON["Valute"][str(valute)]["Value"]
-        date = re.match(pattern="(.*)T.*", string=result_JSON["Date"]).group(1)
-        result_file.write(str(date) + ";" + str(value) + "\n")
+                    print("Что-то пошло не так:\n" + e.__class__.__name__)
+                if retries < max_retries:
+                    if __name__ == '__main__':
+                        print("Повторяем запрос. Попытка #" + str(retries))
+                    retries += 1
+                    time.sleep(5)
+                    continue
+                else:
+                    result_file.close()
+                    return False
+            retries = 0
+            result_JSON = raw_data.json()
+            current_url = result_JSON["PreviousURL"]
+            value = result_JSON["Valute"][str(valute)]["Value"]
+            date = re.match(pattern="(.*)T.*", string=result_JSON["Date"]).group(1)
+            result_file.write(str(date) + ";" + str(value) + "\n")
+            if __name__ == '__main__':
+                print("День #" + str(current_day) + ". дней осталось: " + str(days - current_day) + ". дата: "+ str(date) + ". стоимость: " + str(value) + "₽\n" )
+            time.sleep(time_delay)
+            current_day += 1
+        result_file.close()
+    except KeyboardInterrupt:
         if __name__ == '__main__':
-            print("День #" + str(i) + ". дней осталось: " + str(days - i) + ". дата: "+ str(date) + ". стоимость: " + str(value) + "\n" )
-        time.sleep(time_delay)
-        i += 1
-    result_file.close()
+            print("Выполнение скрипта прервано досрочно. Файл сохранён.")
+        result_file.close()
+        return True
     return True
 
 def main():
     print("Введите код валюты (USD): ", end="")
-    valute = input()
+    valute = str(input()).upper()
     if valute.strip() == "":
         valute = "USD"
     if not (valute in valutes):
