@@ -107,7 +107,7 @@ def main():
         except ValueError:
             print("Введено не число")
             return
-        time_delay = int(time_delay.strip())
+        time_delay = float(time_delay.strip())
         if(time_delay < 0):
             print("Интервал между запросами должен быть положительным")
             return
